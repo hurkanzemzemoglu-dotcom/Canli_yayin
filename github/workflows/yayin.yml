@@ -12,10 +12,22 @@ jobs:
 
       - name: Yayini Baslat
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
           while true; do
-            ffmpeg -re -i "video.mp4" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -g 50 -c:a aac -b:a 128k -ar 44100 -f flv "rtmp://a.rtmp.youtube.com/live2/54k8-jqcu-6mjk-905h-epxp"
+            ffmpeg -re -i "video.mp4" \
+            -c:v libx264 -preset veryfast \
+            -b:v 2500k -maxrate 2500k -bufsize 5000k \
+            -pix_fmt yuv420p -g 50 \
+            -c:a aac -b:a 128k -ar 44100 \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/54k8-jqcu-6mjk-905h-epxp"
           done
+
+
+
+      
+      
+
 
 
       
