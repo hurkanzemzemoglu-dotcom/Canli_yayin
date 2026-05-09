@@ -1,4 +1,4 @@
-name: 7-24 Canli Yayin
+name: 7-24 Youtube'dan Yayina
 on:
   push:
   workflow_dispatch:
@@ -7,21 +7,25 @@ jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Dosyalari Cek
-        uses: actions/checkout@v2
+      - name: Gerekli Araçlari Kur
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pip
+          sudo pip3 install yt-dlp
 
       - name: Yayini Baslat
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
           while true; do
-            ffmpeg -re -i "video.mp4" \
+            URL=$(yt-dlp -g -f "best[ext=mp4]"https://youtu.be/WBZUFiJU6N0?si=xHqdMada7hMy87QN "")
+            ffmpeg -re -i "$URL" \
             -c:v libx264 -preset veryfast \
             -b:v 2500k -maxrate 2500k -bufsize 5000k \
             -pix_fmt yuv420p -g 50 \
             -c:a aac -b:a 128k -ar 44100 \
             -f flv "rtmp://a.rtmp.youtube.com/live2/54k8-jqcu-6mjk-905h-epxp"
           done
+
+
 
 
 
