@@ -1,0 +1,56 @@
+name: 24/7 Live 2027 Countdown
+
+on:
+  schedule:
+    - cron: '0 */5 * * *'
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Depoyu Klonla
+        uses: actions/checkout@v3
+
+      - name: Gerekli Paketleri Yukle
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg xvfb chromium-browser
+
+      - name: Canli Yayini Baslat
+        env:
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+        run: |
+          Xvfb :99 -screen 0 1920x1080x24 &
+          export DISPLAY=:99
+          sleep 3
+
+          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "file://$GITHUB_WORKSPACE/sayac.html" &
+          sleep 5
+
+          ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
+          -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
+          -c:a aac -b:a 128k -ar 44100 \
+          -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
+
+
+
+
+
+
+
+
+
+      
+      
+
+
+
+      
+      
+          
+          
+
+
