@@ -1,4 +1,4 @@
-name: "24-7 Live 2027 Countdown"
+name: "24/7 Live 2027 Countdown"
 
 on:
   workflow_dispatch:
