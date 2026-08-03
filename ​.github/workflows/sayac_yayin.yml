@@ -1,4 +1,4 @@
-name: 24/7 Live 2027 Countdown
+name: 24-7 Live 2027 Countdown
 
 on:
   schedule:
@@ -12,30 +12,28 @@ jobs:
       - name: Depoyu Klonla
         uses: actions/checkout@v3
 
-      - name: Gerekli Paketleri Yükle (FFmpeg & Chrome/XVFB)
+      - name: Gerekli Paketleri Yukle
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg xvfb chromium-browser
 
-      - name: Canlı Yayını Başlat
+      - name: Canli Yayini Baslat
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          # Sanal Ekran Başlat (1920x1080)
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 3
 
-          # Arka planda Chrome ile sayac.html dosyasını tam ekran aç
-          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized file://$GITHUB_WORKSPACE/sayac.html &
+          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "file://$GITHUB_WORKSPACE/sayac.html" &
           sleep 5
 
-          # Ekranı yakala ve YouTube RTMP sunucusuna bas
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
           -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
 
