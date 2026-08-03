@@ -2,8 +2,8 @@ name: 24/7 Live 2027 Countdown
 
 on:
   schedule:
-    - cron: '0 */5 * * *' # Her 5 saatte bir otomatik yeniler
-  workflow_dispatch: # Manuel başlatma butonu
+    - cron: '0 */5 * * *'
+  workflow_dispatch:
 
 jobs:
   stream:
@@ -28,8 +28,7 @@ jobs:
 
           # Arka planda Chrome ile sayac.html dosyasını tam ekran aç
           chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized file://$GITHUB_WORKSPACE/sayac.html &
-
-          
+          sleep 5
 
           # Ekranı yakala ve YouTube RTMP sunucusuna bas
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
@@ -37,5 +36,6 @@ jobs:
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
