@@ -2,9 +2,6 @@ name: "24/7 Live 2027 Countdown"
 
 on:
   workflow_dispatch:
-  schedule:
-    # Her 5 saatte bir otomatik olarak yeniler
-    - cron: '0 */5 * * *'
 
 jobs:
   stream:
@@ -13,12 +10,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Dependencies
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg xvfb chromium-browser python3
 
-      - name: Start Local Web Server & Stream
+      - name: Start Stream
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
@@ -31,19 +28,17 @@ jobs:
           export DISPLAY=:99
           sleep 2
 
-          # 3. Chromium'u Aç (Sayaç Ekranı)
+          # 3. Chromium ile Sayaç Sayfasını Aç
           chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/sayac.html" &
           sleep 5
 
-          # 4. İki MP3 dosyasını birleştirip liste oluştur
-          printf "file 'muzik1.mp3'\nfile 'muzik2.mp3'\n" > playlist.txt
-
-          # 5. Yayını YouTube'a Gönder (Görüntü: Sayaç, Ses: 2 Müzik Sırayla/Döngüde)
+          # 4. Yayını YouTube'a Gönder (Yalnızca Ekran Görüntüsü + Yapay Sessiz Ses)
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
-          -f concat -safe 0 -stream_loop -1 -i playlist.txt \
+          -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
-          -c:a aac -b:a 128k -ar 44100 \
+          -c:a aac -b:a 128k -shortest \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
 
