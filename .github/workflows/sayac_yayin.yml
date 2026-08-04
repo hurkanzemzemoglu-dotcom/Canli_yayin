@@ -26,7 +26,9 @@ jobs:
           export DISPLAY=:99
           sleep 2
 
-          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/sayac.html" &
+          # Otomatik HTML bulucu: Depodaki index.html veya sayac.html dosyasını direkt açar
+          HTML_FILE=$(find . -maxdepth 1 -iname "*.html" | head -n 1 | sed 's/^\.\///')
+          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/$HTML_FILE" &
           sleep 5
 
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
@@ -34,6 +36,7 @@ jobs:
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
           -c:a aac -b:a 128k \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
 
