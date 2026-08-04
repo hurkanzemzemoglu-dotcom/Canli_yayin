@@ -17,33 +17,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg xvfb chromium-browser python3
 
-      - name: Start Stream with Direct Audio Injection
+      - name: Prepare Audio & Start Stream
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          # 1. Dahili Python web sunucusunu başlat
+          # 1. Web sunucusunu başlat
           python3 -m http.server 8000 &
           sleep 2
 
-          # 2. Sanal Ekranı Başlat
+          # 2. Sanal ekranı başlat
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 2
 
-          # 3. Chromium'u Aç (Sayaç Ekranı)
+          # 3. Sayaç sayfasını aç
           chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/sayac.html" &
           sleep 5
 
-          # 4. Şarkı listesini oluştur (Olası kesintileri önlemek için absolute path ile)
-          printf "file '%s/muzik1.mp3'\nfile '%s/muzik2.mp3'\n" "$PWD" "$PWD" > playlist.txt
+          # 4. MP3 dosyalarını bul ve hepsini tek bir birleşik yayına hazır ses dosyasına çevir
+          # (Bu adım dosya ismi büyük/küçük harf olsa bile hepsini otomatik yakalar)
+          echo "Müzik dosyaları hazırlanıyor..."
+          ffmpeg -i $(ls muzik1* | head -n 1) -i $(ls muzik2* | head -n 1) -filter_complex "[0:a][1:a]concat=n=2:v=0:a=1[outa]" -map "[outa]" -c:a aac -b:a 128k -ar 44100 birlesik_ses.aac -y
 
-          # 5. FFmpeg: Görüntüyü ekrandan, SESİ DOĞRUDAN PLAYLIST DOSYASINDAN ALIR
+          # 5. Yayını YouTube'a Gönder (Görüntü: Sayaç, Ses: Hazırlanan Müzik)
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
-          -f concat -safe 0 -stream_loop -1 -i playlist.txt \
+          -stream_loop -1 -i birlesik_ses.aac \
           -map 0:v:0 -map 1:a:0 \
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
-          -c:a aac -b:a 128k -ar 44100 \
+          -c:a copy \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
 
