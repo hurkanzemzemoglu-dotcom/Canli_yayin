@@ -10,6 +10,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Clean Bad Files
+        run: |
+          # Sunucuda ne kadar müzik/boş dosya varsa yayından önce zorla siler
+          rm -f muzik* *.mp3
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -19,25 +24,22 @@ jobs:
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          # 1. Dahili Python web sunucusunu başlat
           python3 -m http.server 8000 &
           sleep 2
 
-          # 2. Sanal Ekranı Başlat
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 2
 
-          # 3. Chromium ile Sayaç Sayfasını Aç
           chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/sayac.html" &
           sleep 5
 
-          # 4. Yayını YouTube'a Gönder (Yalnızca Ekran Görüntüsü + Yapay Sessiz Ses)
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
           -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
-          -c:a aac -b:a 128k -shortest \
+          -c:a aac -b:a 128k \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
 
