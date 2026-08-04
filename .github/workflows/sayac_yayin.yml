@@ -2,6 +2,9 @@ name: "24/7 Live 2027 Countdown"
 
 on:
   workflow_dispatch:
+  schedule:
+    # Her 5 saatte bir otomatik başlatır (UTC zaman dilimine göre)
+    - cron: '0 */5 * * *'
 
 jobs:
   stream:
@@ -26,7 +29,6 @@ jobs:
           export DISPLAY=:99
           sleep 2
 
-          # Otomatik HTML bulucu: Depodaki index.html veya sayac.html dosyasını direkt açar
           HTML_FILE=$(find . -maxdepth 1 -iname "*.html" | head -n 1 | sed 's/^\.\///')
           chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/$HTML_FILE" &
           sleep 5
@@ -36,31 +38,3 @@ jobs:
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
           -c:a aac -b:a 128k \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-      
-      
-
-
-
-      
-      
-          
-          
-
-
