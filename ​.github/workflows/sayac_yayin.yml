@@ -12,147 +12,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Dependencies & Audio Setup
+      - name: Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb chromium-browser python3 pulseaudio alsa-utils
+          sudo apt-get install -y ffmpeg xvfb chromium-browser python3
 
-      - name: Start Stream with Audio
+      - name: Start Stream with Direct Audio Injection
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          # 1. Pulseaudio Sanal Ses Sunucusunu Başlat
-          pulseaudio --start --exit-idle-time=-1
-          pacmd load-module module-virtual-sink sink_name=v1
-
-          # 2. HTML Sayaç ve Müzik Çalar Dosyasını Oluştur
-          cat << 'EOF' > sayac.html
-          <!DOCTYPE html>
-          <html lang="tr">
-          <head>
-            <meta charset="UTF-8">
-            <title>2027 Yılbaşı Geri Sayım Sayacı</title>
-            <style>
-              body {
-                background-color: #0b0c10;
-                color: #ffffff;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin: 0;
-                overflow: hidden;
-              }
-              h1 {
-                font-size: 3rem;
-                color: #66fcf1;
-                text-transform: uppercase;
-                letter-spacing: 4px;
-                margin-bottom: 20px;
-                text-shadow: 0 0 20px rgba(102, 252, 241, 0.6);
-              }
-              #timer {
-                display: flex;
-                gap: 25px;
-              }
-              .box {
-                background: #1f2833;
-                padding: 20px 30px;
-                border-radius: 12px;
-                box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-                text-align: center;
-                min-width: 100px;
-                border: 1px solid #45a29e;
-              }
-              .number {
-                font-size: 4rem;
-                font-weight: bold;
-                color: #c5c6c7;
-              }
-              .label {
-                font-size: 1rem;
-                color: #66fcf1;
-                text-transform: uppercase;
-                margin-top: 5px;
-              }
-            </style>
-          </head>
-          <body>
-            <h1>2027 YILBAŞINA KALAN SÜRE</h1>
-            <div id="timer">
-              <div class="box"><div class="number" id="days">00</div><div class="label">Gün</div></div>
-              <div class="box"><div class="number" id="hours">00</div><div class="label">Saat</div></div>
-              <div class="box"><div class="number" id="minutes">00</div><div class="label">Dakika</div></div>
-              <div class="box"><div class="number" id="seconds">00</div><div class="label">Saniye</div></div>
-            </div>
-
-            <!-- Müzik Oynatıcı -->
-            <audio id="bgm" autoplay></audio>
-
-            <script>
-              // Sayaç Mantığı
-              const targetDate = new Date("January 1, 2027 00:00:00").getTime();
-              function updateCountdown() {
-                const now = new Date().getTime();
-                const difference = targetDate - now;
-                if (difference <= 0) {
-                  document.getElementById("timer").innerHTML = "<h2>MUTLU YILLAR 2027!</h2>";
-                  return;
-                }
-                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-                document.getElementById("days").innerText = days.toString().padStart(2, '0');
-                document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
-                document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
-                document.getElementById("seconds").innerText = seconds.toString().padStart(2, '0');
-              }
-              setInterval(updateCountdown, 1000);
-              updateCountdown();
-
-              // 2 Müzikli Playlist Mantığı
-              const playlist = ['muzik1.mp3', 'muzik2.mp3'];
-              let currentIndex = 0;
-              const audioPlayer = document.getElementById('bgm');
-
-              function playNext() {
-                audioPlayer.src = playlist[currentIndex];
-                audioPlayer.play().catch(e => console.log(e));
-                currentIndex = (currentIndex + 1) % playlist.length;
-              }
-
-              audioPlayer.addEventListener('ended', playNext);
-              // Sayfa açılınca başlat
-              playNext();
-            </script>
-          </body>
-          </html>
-          EOF
-
-          # 3. Web Sunucusunu Başlat
+          # 1. Dahili Python web sunucusunu başlat
           python3 -m http.server 8000 &
           sleep 2
 
-          # 4. Sanal Ekranı Başlat
+          # 2. Sanal Ekranı Başlat
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 2
 
-          # 5. İki MP3'ten döngü dosyası oluşturup FFmpeg'e bağla
-          printf "file 'muzik1.mp3'\nfile 'muzik2.mp3'\n" > playlist.txt
-
-          # 6. Chromium ve FFmpeg Yayını
-          chromium-browser --no-sandbox --disable-setuid-sandbox --autoplay-policy=no-user-gesture-required --kiosk "http://localhost:8000/sayac.html" &
+          # 3. Chromium'u Aç (Sayaç Ekranı)
+          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/sayac.html" &
           sleep 5
 
+          # 4. Şarkı listesini oluştur (Olası kesintileri önlemek için absolute path ile)
+          printf "file '%s/muzik1.mp3'\nfile '%s/muzik2.mp3'\n" "$PWD" "$PWD" > playlist.txt
+
+          # 5. FFmpeg: Görüntüyü ekrandan, SESİ DOĞRUDAN PLAYLIST DOSYASINDAN ALIR
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
           -f concat -safe 0 -stream_loop -1 -i playlist.txt \
+          -map 0:v:0 -map 1:a:0 \
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
-          -c:a aac -b:a 128k -ar 44100 -shortest \
+          -c:a aac -b:a 128k -ar 44100 \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
 
