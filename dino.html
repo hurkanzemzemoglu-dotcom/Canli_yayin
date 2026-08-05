@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Chrome Dino Stream Live</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f7f7f7;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Üst Bilgi ve Sayaç Alanı */
+        .header-container {
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .stats-box {
+            background: #222;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .timer-box {
+            text-align: center;
+            color: #333;
+        }
+
+        .timer-title { font-size: 14px; color: #666; font-weight: bold; }
+        .timer-value { font-size: 28px; font-weight: bold; color: #d63031; }
+
+        /* Oyun Alanı */
+        .game-container {
+            position: relative;
+            width: 800px;
+            height: 250px;
+            margin-top: 80px;
+            border-bottom: 4px solid #535353;
+            overflow: hidden;
+        }
+
+        /* Skor Göstergesi */
+        .score-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #535353;
+            letter-spacing: 2px;
+        }
+
+        /* Dinozor (Pure CSS) */
+        .dino {
+            position: absolute;
+            bottom: 0;
+            left: 80px;
+            width: 44px;
+            height: 47px;
+            background-color: #535353;
+            /* Dinozor Piksel Şekli */
+            clip-path: polygon(
+                35% 0%, 100% 0%, 100% 35%, 80% 35%, 80% 50%, 100% 50%, 100% 65%, 60% 65%, 60% 80%, 40% 80%, 40% 100%, 20% 100%, 20% 80%, 0% 80%, 0% 40%, 20% 40%, 20% 20%, 35% 20%
+            );
+        }
+
+        .dino.jump {
+            animation: jump-anim 0.5s cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+
+        @keyframes jump-anim {
+            0% { bottom: 0; }
+            50% { bottom: 110px; }
+            100% { bottom: 0; }
+        }
+
+        /* Kaktüs Engeli (Pure CSS) */
+        .cactus {
+            position: absolute;
+            bottom: 0;
+            right: -30px;
+            width: 24px;
+            height: 50px;
+            background-color: #535353;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .cactus::before, .cactus::after {
+            content: '';
+            position: absolute;
+            background-color: #535353;
+        }
+
+        /* Sol Kaktüs Kolu */
+        .cactus::before {
+            width: 10px;
+            height: 20px;
+            left: -10px;
+            top: 15px;
+            border-radius: 4px 0 0 4px;
+        }
+
+        /* Sağ Kaktüs Kolu */
+        .cactus::after {
+            width: 10px;
+            height: 25px;
+            right: -10px;
+            top: 10px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Bulutlar */
+        .cloud {
+            position: absolute;
+            top: 30px;
+            right: -60px;
+            width: 50px;
+            height: 14px;
+            background: #c4c4c4;
+            border-radius: 10px;
+            opacity: 0.7;
+            animation: cloud-move 8s linear infinite;
+        }
+
+        @keyframes cloud-move {
+            0% { right: -60px; }
+            100% { right: 850px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Üst Yayın Katmanları -->
+    <div class="header-container">
+        <div class="stats-box">
+            LIVE SUB COUNT: <span id="subs" style="color: #55efc4;">201</span>
+        </div>
+        <div class="timer-box">
+            <div class="timer-title">PLAYING FOR</div>
+            <div class="timer-value" id="timer">00 : 00 : 00</div>
+        </div>
+        <div class="stats-box">
+            GOAL: <span style="color: #ffeaa7;">250</span>
+        </div>
+    </div>
+
+    <!-- Oyun Ekranı -->
+    <div class="game-container">
+        <div class="score-display" id="score">0000000000000000</div>
+        <div class="cloud" style="top: 20px; animation-duration: 10s;"></div>
+        <div class="cloud" style="top: 50px; animation-duration: 14s; animation-delay: 3s;"></div>
+        <div class="dino" id="dino"></div>
+        <div class="cactus" id="cactus"></div>
+    </div>
+
+    <script>
+        const dino = document.getElementById('dino');
+        const cactus = document.getElementById('cactus');
+        const scoreDisplay = document.getElementById('score');
+        
+        let score = 0;
+        let cactusSpeed = 4; // Kaktüs hızı
+        let cactusPos = 800;
+
+        // Sonsuz Kaktüs Hareketi ve Otomatik Zıplama Mantığı
+        function gameLoop() {
+            cactusPos -= cactusSpeed;
+            if (cactusPos < -30) {
+                cactusPos = 800 + Math.random() * 200; // Rastgele mesafeyle tekrar gelsin
+            }
+            cactus.style.left = cactusPos + 'px';
+
+            // Otomatik Zıplama: Kaktüs Dinozor'a yaklaştığında zıpla
+            if (cactusPos > 80 && cactusPos < 150) {
+                if (!dino.classList.contains('jump')) {
+                    dino.classList.add('jump');
+                    setTimeout(() => {
+                        dino.classList.remove('jump');
+                    }, 500);
+                }
+            }
+
+            // Skor Artırma
+            score += 1;
+            let scoreStr = score.toString().padStart(16, '0');
+            scoreDisplay.innerText = scoreStr;
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+
+        // Yayın Süresi Sayacı
+        let totalSeconds = 0;
+        setInterval(() => {
+            totalSeconds++;
+            let hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+            let mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+            let secs = (totalSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `${hrs} : ${mins} : ${secs}`;
+        }, 1000);
+    </script>
+</body>
+</html>
+
