@@ -3,7 +3,6 @@ name: "🦖 DINO GAME 24/7 LIVE STREAM"
 on:
   workflow_dispatch:
   schedule:
-    # Her 5 saatte bir otomatik yenilenerek yayını kesintisiz sürdürür
     - cron: '0 */5 * * *'
 
 jobs:
@@ -16,25 +15,50 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb chromium-browser python3
+          sudo apt-get install -y ffmpeg xvfb chromium-browser python3 fluxbox wmctrl
 
       - name: Start Stream
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY_DINO }}
         run: |
+          # 1. Yerel web sunucusunu başlat
           python3 -m http.server 8000 &
           sleep 2
 
+          # 2. Sanal Ekranı (Xvfb) tam 1920x1080 olarak başlat
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 2
 
-          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/dino.html" &
+          # 3. Pencere Yöneticisini (Fluxbox) başlat (Pencerelerin dikey sıkışmasını engeller)
+          fluxbox &
+          sleep 2
+
+          # 4. Chromium'u Tam Ekran (1920x1080) boyutunda zorlayarak aç
+          chromium-browser \
+            --no-sandbox \
+            --disable-setuid-sandbox \
+            --start-fullscreen \
+            --window-size=1920,1080 \
+            --window-position=0,0 \
+            --user-data-dir=/tmp/temp-chromium-profile \
+            --no-first-run \
+            --no-default-browser-check \
+            --disable-translate \
+            --disable-features=Translate \
+            "http://localhost:8000/dino.html" &
           sleep 5
 
-          ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
+          # 5. Pencereyi Ekranın Tamamına Yay (Pencere Yöneticisi ile Zorlama)
+          wmctrl -r :ACTIVE: -b add,fullscreen || true
+          sleep 2
+
+          # 6. FFmpeg ile Tam Ekran Yatay (16:9) Yayın Başlat
+          ffmpeg -f x11grab -video_size 1920x1080 -framerate 60 -i :99.0 \
           -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
+          -c:v libx264 -preset veryfast -b:v 4500k -maxrate 4500k -bufsize 9000k \
+          -g 120 -pix_fmt yuv420p \
           -c:a aac -b:a 128k \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
