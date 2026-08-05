@@ -2,226 +2,218 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Chrome Dino Stream Live 24/7</title>
+    <title>Chrome Dino Stream - Full Auto</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
+        body {
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-            background-color: #121212;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #ffffff;
+            background-color: #f7f7f7;
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            align-items: center;
         }
 
-        /* Üst Bilgi Barı (Overlay) */
-        .top-bar {
+        .header-container {
             width: 100%;
-            height: 120px;
-            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(18,18,18,0) 100%);
+            padding: 20px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 60px;
-            z-index: 10;
+            background: #fff;
+            border-bottom: 2px solid #e0e0e0;
         }
 
-        .stat-card {
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 12px 28px;
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        .stats-box {
+            background: #222;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: bold;
         }
 
-        .stat-label { font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #aaa; font-weight: 600; }
-        .stat-value { font-size: 32px; font-weight: 800; }
-
-        .timer-val { color: #ff5252; font-family: monospace; }
-        .sub-val { color: #00e676; }
-        .goal-val { color: #ffab40; }
-
-        /* Oyun Sahnesi (Tam Ekran Hizalama) */
-        .game-wrapper {
-            position: relative;
-            width: 100%;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+        .timer-box { text-align: center; color: #333; }
+        .timer-title { font-size: 14px; color: #666; font-weight: bold; }
+        .timer-value { font-size: 28px; font-weight: bold; color: #d63031; }
 
         .game-container {
             position: relative;
-            width: 1400px;
-            height: 350px;
-            border-bottom: 4px solid #fff;
+            width: 800px;
+            height: 250px;
+            margin-top: 80px;
+            border-bottom: 4px solid #535353;
             overflow: hidden;
         }
 
-        /* Skor Paneli */
         .score-display {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 36px;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
             font-weight: bold;
-            font-family: monospace;
-            color: #888;
-            letter-spacing: 4px;
+            color: #535353;
+            letter-spacing: 2px;
         }
 
-        /* Pure CSS Dinozor */
+        /* Dinozor Ayakta */
         .dino {
             position: absolute;
             bottom: 0;
-            left: 120px;
-            width: 55px;
-            height: 58px;
-            background-color: #00e676;
+            left: 80px;
+            width: 44px;
+            height: 47px;
+            background-color: #535353;
+            transition: height 0.1s, width 0.1s;
             clip-path: polygon(
                 35% 0%, 100% 0%, 100% 35%, 80% 35%, 80% 50%, 100% 50%, 100% 65%, 60% 65%, 60% 80%, 40% 80%, 40% 100%, 20% 100%, 20% 80%, 0% 80%, 0% 40%, 20% 40%, 20% 20%, 35% 20%
             );
-            filter: drop-shadow(0 0 10px #00e676);
         }
 
+        /* Dinozor Zıplama */
         .dino.jump {
-            animation: jump-anim 0.48s cubic-bezier(0.15, 0.8, 0.25, 1);
+            animation: jump-anim 0.5s cubic-bezier(0.1, 0.7, 0.1, 1);
         }
 
         @keyframes jump-anim {
             0% { bottom: 0; }
-            50% { bottom: 160px; }
+            50% { bottom: 110px; }
             100% { bottom: 0; }
         }
 
+        /* Dinozor Eğilme */
+        .dino.duck {
+            height: 28px;
+            width: 55px;
+            clip-path: polygon(
+                0% 40%, 60% 40%, 60% 0%, 100% 0%, 100% 60%, 80% 60%, 80% 100%, 0% 100%
+            );
+        }
+
         /* Kaktüs Engeli */
-        .cactus {
+        .obstacle-cactus {
             position: absolute;
             bottom: 0;
-            right: -40px;
-            width: 30px;
-            height: 65px;
-            background-color: #ff5252;
-            border-radius: 6px 6px 0 0;
-            filter: drop-shadow(0 0 8px #ff5252);
+            width: 24px;
+            height: 48px;
+            background-color: #535353;
+            border-radius: 4px 4px 0 0;
         }
 
-        .cactus::before, .cactus::after {
-            content: '';
+        /* Kuş Engeli (Pterodactyl) */
+        .obstacle-bird {
             position: absolute;
-            background-color: #ff5252;
+            width: 40px;
+            height: 25px;
+            background-color: #535353;
+            clip-path: polygon(0% 50%, 30% 0%, 70% 30%, 100% 10%, 80% 80%, 40% 60%, 10% 100%);
+            animation: flap 0.3s infinite alternate;
         }
-        .cactus::before { width: 12px; height: 26px; left: -12px; top: 18px; border-radius: 4px 0 0 4px; }
-        .cactus::after { width: 12px; height: 32px; right: -12px; top: 12px; border-radius: 0 4px 4px 0; }
 
-        /* Arka Plan Bulutları */
+        @keyframes flap {
+            0% { transform: scaleY(1); }
+            100% { transform: scaleY(-0.8); }
+        }
+
         .cloud {
             position: absolute;
-            top: 40px;
-            right: -100px;
-            width: 80px;
-            height: 20px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 20px;
-            animation: cloud-move 10s linear infinite;
+            top: 30px;
+            right: -60px;
+            width: 50px;
+            height: 14px;
+            background: #c4c4c4;
+            border-radius: 10px;
+            opacity: 0.7;
+            animation: cloud-move 8s linear infinite;
         }
 
         @keyframes cloud-move {
-            0% { right: -100px; }
-            100% { right: 1500px; }
-        }
-
-        /* Alt Yayın Barı */
-        .bottom-bar {
-            width: 100%;
-            height: 70px;
-            background: #0a0a0a;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #fff;
-        }
-
-        .live-badge {
-            background: #ff0000;
-            padding: 4px 12px;
-            border-radius: 6px;
-            margin-right: 15px;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
+            0% { right: -60px; }
+            100% { right: 850px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="stat-card">
-            <div class="stat-label">LIVE SUB COUNT</div>
-            <div class="stat-value sub-val">201</div>
+    <div class="header-container">
+        <div class="stats-box">
+            LIVE SUB COUNT: <span id="subs" style="color: #55efc4;">201</span>
         </div>
-        <div class="stat-card" style="text-align: center;">
-            <div class="stat-label">PLAYING FOR</div>
-            <div class="stat-value timer-val" id="timer">00 : 00 : 00</div>
+        <div class="timer-box">
+            <div class="timer-title">PLAYING FOR</div>
+            <div class="timer-value" id="timer">00 : 00 : 00</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">SUBSCRIBER GOAL</div>
-            <div class="stat-value goal-val">250</div>
+        <div class="stats-box">
+            GOAL: <span style="color: #ffeaa7;">250</span>
         </div>
     </div>
 
-    <div class="game-wrapper">
-        <div class="game-container">
-            <div class="score-display" id="score">0000000000000000</div>
-            <div class="cloud" style="top: 30px; animation-duration: 12s;"></div>
-            <div class="cloud" style="top: 80px; animation-duration: 16s; animation-delay: 4s;"></div>
-            <div class="dino" id="dino"></div>
-            <div class="cactus" id="cactus"></div>
-        </div>
-    </div>
-
-    <div class="bottom-bar">
-        <span class="live-badge">🔴 LIVE</span> CHROME DINO GAME FOR 500 DAYS | UNLIMITED RUN 24/7
+    <div class="game-container">
+        <div class="score-display" id="score">0000000000000000</div>
+        <div class="cloud" style="top: 20px; animation-duration: 10s;"></div>
+        <div class="cloud" style="top: 50px; animation-duration: 14s; animation-delay: 3s;"></div>
+        <div class="dino" id="dino"></div>
+        <div id="obstacle"></div>
     </div>
 
     <script>
         const dino = document.getElementById('dino');
-        const cactus = document.getElementById('cactus');
+        const obstacle = document.getElementById('obstacle');
         const scoreDisplay = document.getElementById('score');
         
         let score = 0;
-        let cactusSpeed = 7;
-        let cactusPos = 1400;
+        let speed = 6;
+        let obsPos = 800;
+        let obsType = 'cactus'; // 'cactus', 'bird-high', 'bird-low'
+
+        function spawnObstacle() {
+            obsPos = 800;
+            const rand = Math.random();
+            obstacle.className = '';
+            
+            if (rand < 0.5) {
+                // Kaktüs (Zıplama gerekir)
+                obsType = 'cactus';
+                obstacle.classList.add('obstacle-cactus');
+                obstacle.style.bottom = '0px';
+            } else if (rand < 0.8) {
+                // Alçak Kuş (Eğilme gerekir)
+                obsType = 'bird-low';
+                obstacle.classList.add('obstacle-bird');
+                obstacle.style.bottom = '35px';
+            } else {
+                // Yüksek Kuş (Altından yürüyerek geçilir)
+                obsType = 'bird-high';
+                obstacle.classList.add('obstacle-bird');
+                obstacle.style.bottom = '85px';
+            }
+        }
 
         function gameLoop() {
-            cactusPos -= cactusSpeed;
-            if (cactusPos < -40) {
-                cactusPos = 1400 + Math.random() * 300;
+            obsPos -= speed;
+            if (obsPos < -50) {
+                spawnObstacle();
             }
-            cactus.style.left = cactusPos + 'px';
+            obstacle.style.left = obsPos + 'px';
 
-            // Otomatik Zıplama Hassasiyeti
-            if (cactusPos > 120 && cactusPos < 210) {
-                if (!dino.classList.contains('jump')) {
-                    dino.classList.add('jump');
-                    setTimeout(() => {
-                        dino.classList.remove('jump');
-                    }, 480);
+            // Yapay Zeka Hamle Kontrolü (Yaklaştığında otomatik tepki verir)
+            if (obsPos > 80 && obsPos < 160) {
+                if (obsType === 'cactus') {
+                    // Zıpla
+                    if (!dino.classList.contains('jump')) {
+                        dino.classList.add('jump');
+                        setTimeout(() => dino.classList.remove('jump'), 500);
+                    }
+                } else if (obsType === 'bird-low') {
+                    // Eğil
+                    if (!dino.classList.contains('duck')) {
+                        dino.classList.add('duck');
+                        setTimeout(() => dino.classList.remove('duck'), 600);
+                    }
                 }
+                // 'bird-high' durumunda dinozor hiçbir şey yapmaz, altından rahatça geçer.
             }
 
             score += 1;
@@ -230,8 +222,10 @@
             requestAnimationFrame(gameLoop);
         }
 
+        spawnObstacle();
         gameLoop();
 
+        // Yayın Sayaç Mantığı
         let totalSeconds = 0;
         setInterval(() => {
             totalSeconds++;
@@ -243,5 +237,3 @@
     </script>
 </body>
 </html>
-
-
