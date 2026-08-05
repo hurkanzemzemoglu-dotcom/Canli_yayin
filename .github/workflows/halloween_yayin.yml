@@ -1,0 +1,40 @@
+name: "🎃 HALLOWEEN 2026 COUNTDOWN LIVE"
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Her 5 saatte bir otomatik başlatır
+    - cron: '0 */5 * * *'
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg xvfb chromium-browser python3
+
+      - name: Start Stream
+        env:
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY_HALLOWEEN }}
+        run: |
+          python3 -m http.server 8000 &
+          sleep 2
+
+          Xvfb :99 -screen 0 1920x1080x24 &
+          export DISPLAY=:99
+          sleep 2
+
+          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized "http://localhost:8000/halloween.html" &
+          sleep 5
+
+          ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
+          -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
+          -c:a aac -b:a 128k \
+          -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
