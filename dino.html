@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Chrome Dino Stream - Full Auto</title>
+    <title>Chrome Dino Stream - Full Auto Multi-Cactus</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -41,9 +41,9 @@
 
         .game-container {
             position: relative;
-            width: 800px;
-            height: 250px;
-            margin-top: 80px;
+            width: 1000px;
+            height: 280px;
+            margin-top: 60px;
             border-bottom: 4px solid #535353;
             overflow: hidden;
         }
@@ -63,50 +63,66 @@
             position: absolute;
             bottom: 0;
             left: 80px;
-            width: 44px;
-            height: 47px;
+            width: 48px;
+            height: 52px;
             background-color: #535353;
             transition: height 0.1s, width 0.1s;
             clip-path: polygon(
                 35% 0%, 100% 0%, 100% 35%, 80% 35%, 80% 50%, 100% 50%, 100% 65%, 60% 65%, 60% 80%, 40% 80%, 40% 100%, 20% 100%, 20% 80%, 0% 80%, 0% 40%, 20% 40%, 20% 20%, 35% 20%
             );
+            z-index: 10;
         }
 
         /* Dinozor Zıplama */
         .dino.jump {
-            animation: jump-anim 0.5s cubic-bezier(0.1, 0.7, 0.1, 1);
+            animation: jump-anim 0.65s cubic-bezier(0.1, 0.7, 0.1, 1);
         }
 
         @keyframes jump-anim {
             0% { bottom: 0; }
-            50% { bottom: 110px; }
+            50% { bottom: 135px; }
             100% { bottom: 0; }
         }
 
         /* Dinozor Eğilme */
         .dino.duck {
-            height: 28px;
-            width: 55px;
+            height: 30px;
+            width: 60px;
             clip-path: polygon(
                 0% 40%, 60% 40%, 60% 0%, 100% 0%, 100% 60%, 80% 60%, 80% 100%, 0% 100%
             );
         }
 
-        /* Kaktüs Engeli */
-        .obstacle-cactus {
+        /* Kaktüs Kapsayıcısı */
+        .cactus-group {
             position: absolute;
             bottom: 0;
-            width: 24px;
-            height: 48px;
-            background-color: #535353;
-            border-radius: 4px 4px 0 0;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
         }
+
+        /* Tekil Büyük Kaktüs */
+        .single-cactus {
+            width: 30px;
+            height: 62px;
+            background-color: #535353;
+            border-radius: 6px 6px 0 0;
+            position: relative;
+        }
+        .single-cactus::before, .single-cactus::after {
+            content: '';
+            position: absolute;
+            background-color: #535353;
+        }
+        .single-cactus::before { width: 10px; height: 24px; left: -8px; top: 16px; border-radius: 4px 0 0 4px; }
+        .single-cactus::after { width: 10px; height: 28px; right: -8px; top: 12px; border-radius: 0 4px 4px 0; }
 
         /* Kuş Engeli (Pterodactyl) */
         .obstacle-bird {
             position: absolute;
-            width: 40px;
-            height: 25px;
+            width: 46px;
+            height: 28px;
             background-color: #535353;
             clip-path: polygon(0% 50%, 30% 0%, 70% 30%, 100% 10%, 80% 80%, 40% 60%, 10% 100%);
             animation: flap 0.3s infinite alternate;
@@ -121,8 +137,8 @@
             position: absolute;
             top: 30px;
             right: -60px;
-            width: 50px;
-            height: 14px;
+            width: 60px;
+            height: 16px;
             background: #c4c4c4;
             border-radius: 10px;
             opacity: 0.7;
@@ -131,7 +147,7 @@
 
         @keyframes cloud-move {
             0% { right: -60px; }
-            100% { right: 850px; }
+            100% { right: 1050px; }
         }
     </style>
 </head>
@@ -164,56 +180,61 @@
         const scoreDisplay = document.getElementById('score');
         
         let score = 0;
-        let speed = 6;
-        let obsPos = 800;
+        let speed = 7;
+        let obsPos = 1000;
         let obsType = 'cactus'; // 'cactus', 'bird-high', 'bird-low'
 
         function spawnObstacle() {
-            obsPos = 800;
+            obsPos = 1000;
             const rand = Math.random();
             obstacle.className = '';
+            obstacle.innerHTML = '';
             
-            if (rand < 0.5) {
-                // Kaktüs (Zıplama gerekir)
+            if (rand < 0.6) {
+                // KAKTÜS GRUBU (1 ile 6 Arasında Rastgele Sayıda Büyük Kaktüs)
                 obsType = 'cactus';
-                obstacle.classList.add('obstacle-cactus');
+                obstacle.className = 'cactus-group';
                 obstacle.style.bottom = '0px';
-            } else if (rand < 0.8) {
-                // Alçak Kuş (Eğilme gerekir)
+                
+                const cactusCount = Math.floor(Math.random() * 6) + 1; // Maksimum 6 tane
+                for (let i = 0; i < cactusCount; i++) {
+                    const cactusEl = document.createElement('div');
+                    cactusEl.className = 'single-cactus';
+                    obstacle.appendChild(cactusEl);
+                }
+            } else if (rand < 0.85) {
+                // ALÇAK KUŞ (Eğilme gerekir)
                 obsType = 'bird-low';
-                obstacle.classList.add('obstacle-bird');
-                obstacle.style.bottom = '35px';
+                obstacle.className = 'obstacle-bird';
+                obstacle.style.bottom = '40px';
             } else {
-                // Yüksek Kuş (Altından yürüyerek geçilir)
+                // YÜKSEK KUŞ (Altından geçilir)
                 obsType = 'bird-high';
-                obstacle.classList.add('obstacle-bird');
-                obstacle.style.bottom = '85px';
+                obstacle.className = 'obstacle-bird';
+                obstacle.style.bottom = '95px';
             }
         }
 
         function gameLoop() {
             obsPos -= speed;
-            if (obsPos < -50) {
+            if (obsPos < -250) {
                 spawnObstacle();
             }
             obstacle.style.left = obsPos + 'px';
 
-            // Yapay Zeka Hamle Kontrolü (Yaklaştığında otomatik tepki verir)
-            if (obsPos > 80 && obsPos < 160) {
+            // GELİŞMİŞ AI ZAMANLAMA KONTROLÜ
+            if (obsPos > 90 && obsPos < 220) {
                 if (obsType === 'cactus') {
-                    // Zıpla
                     if (!dino.classList.contains('jump')) {
                         dino.classList.add('jump');
-                        setTimeout(() => dino.classList.remove('jump'), 500);
+                        setTimeout(() => dino.classList.remove('jump'), 650);
                     }
                 } else if (obsType === 'bird-low') {
-                    // Eğil
                     if (!dino.classList.contains('duck')) {
                         dino.classList.add('duck');
                         setTimeout(() => dino.classList.remove('duck'), 600);
                     }
                 }
-                // 'bird-high' durumunda dinozor hiçbir şey yapmaz, altından rahatça geçer.
             }
 
             score += 1;
@@ -225,7 +246,7 @@
         spawnObstacle();
         gameLoop();
 
-        // Yayın Sayaç Mantığı
+        // CANLI YAYIN SAYAC LOGIGI
         let totalSeconds = 0;
         setInterval(() => {
             totalSeconds++;
@@ -237,3 +258,4 @@
     </script>
 </body>
 </html>
+
