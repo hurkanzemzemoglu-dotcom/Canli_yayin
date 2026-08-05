@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Halloween 2026 Countdown Live</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            /* Cadılar Bayramı Turuncu/Siyah Degrade Arka Planı */
+            background: linear-gradient(to bottom, #d35400 0%, #e67e22 45%, #2c3e50 70%, #111111 70%);
+            position: relative;
+        }
+
+        /* Üst Başlık */
+        .title-box {
+            text-align: center;
+            margin-top: 50px;
+            color: #ff9f43;
+            text-shadow: 4px 4px 0px #000, -2px -2px 0px #000;
+            font-size: 32px;
+            letter-spacing: 3px;
+        }
+
+        /* Sayaç Kutusu */
+        .timer-container {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            border: 6px solid #ff793f;
+            border-radius: 12px;
+            padding: 20px 40px;
+            box-shadow: 0 0 30px rgba(255, 121, 63, 0.5), 8px 8px 0px #000;
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 75px;
+            color: #ffb142;
+            text-shadow: 4px 4px 0px #000;
+            letter-spacing: 4px;
+        }
+
+        .labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            color: #aaa;
+            font-size: 18px;
+        }
+
+        /* Zemin (Mezarlık Toprağı) */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 30%;
+            background: #111;
+            border-top: 8px solid #1e272e;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding-bottom: 20px;
+        }
+
+        /* Yerin Altından Çıkan Eller (Zombie/Skeleton Hands) */
+        .hand-container {
+            position: relative;
+            width: 80px;
+            height: 120px;
+            overflow: hidden;
+        }
+
+        .hand {
+            position: absolute;
+            bottom: -100px;
+            left: 20px;
+            width: 40px;
+            height: 90px;
+            background: #718093;
+            border: 4px solid #000;
+            border-radius: 10px 10px 0 0;
+            animation: rise-and-sink 5s infinite ease-in-out;
+        }
+
+        /* El Parmakları */
+        .hand::before {
+            content: '🖐️';
+            font-size: 50px;
+            position: absolute;
+            top: -30px;
+            left: -10px;
+            filter: drop-shadow(2px 2px 0px #000);
+        }
+
+        /* 5 Saniyede Bir Çıkıp Batan Animasyon */
+        @keyframes rise-and-sink {
+            0% { bottom: -100px; }
+            30% { bottom: 10px; }
+            70% { bottom: 10px; }
+            100% { bottom: -100px; }
+        }
+
+        /* Farklı Ellerin Sırayla Çıkması İçin Gecikmeler */
+        .hand-1 .hand { animation-delay: 0s; }
+        .hand-2 .hand { animation-delay: 1.5s; }
+        .hand-3 .hand { animation-delay: 3s; }
+        .hand-4 .hand { animation-delay: 0.8s; }
+        .hand-5 .hand { animation-delay: 2.2s; }
+
+        /* Sol Alt Abone / Beğeni Alanı */
+        .stats-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 3px solid #ff5252;
+            padding: 10px 20px;
+            color: #fff;
+            border-radius: 6px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="title-box">
+        <h1>🎃 HALLOWEEN 2026 BEGINS IN 🎃</h1>
+    </div>
+
+    <!-- 2026 Halloween Sayaç -->
+    <div class="timer-container">
+        <div class="timer-display" id="timer">00 : 00 : 00 : 00</div>
+        <div class="labels">
+            <span>DAYS</span>
+            <span>HOURS</span>
+            <span>MINUTES</span>
+            <span>SECONDS</span>
+        </div>
+    </div>
+
+    <!-- Canlı Abone Sayacı -->
+    <div class="stats-box">
+        <div>LIVE SUB COUNT: <span id="subs" style="color:#ffb142;">201</span></div>
+    </div>
+
+    <!-- Zemin ve Yerin Altından Çıkan Eller -->
+    <div class="ground">
+        <div class="hand-container hand-1"><div class="hand"></div></div>
+        <div class="hand-container hand-2"><div class="hand"></div></div>
+        <div class="hand-container hand-3"><div class="hand"></div></div>
+        <div class="hand-container hand-4"><div class="hand"></div></div>
+        <div class="hand-container hand-5"><div class="hand"></div></div>
+    </div>
+
+    <script>
+        // 31 Ekim 2026 Cadılar Bayramı Hedef Tarihi
+        const targetDate = new Date("October 31, 2026 00:00:00").getTime();
+
+        setInterval(() => {
+            const now = new Date().getTime();
+            const diff = targetDate - now;
+
+            if (diff > 0) {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById('timer').innerText = 
+                    `${days < 10 ? '0' + days : days} : ${hours < 10 ? '0' + hours : hours} : ${minutes < 10 ? '0' + minutes : minutes} : ${seconds < 10 ? '0' + seconds : seconds}`;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
+
