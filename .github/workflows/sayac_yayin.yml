@@ -29,8 +29,8 @@ jobs:
           export DISPLAY=:99
           sleep 2
 
-          chromium-browser --no-sandbox --disable-setuid-sandbox --kiosk --start-maximized http://localhost:8000/sayac.html &
-          sleep 5
+                    chromium-browser --no-sandbox --disable-setuid-sandbox --window-size=1920,1080 --start-fullscreen --kiosk http://localhost:8000/sayac.html &
+
 
           ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
           -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
