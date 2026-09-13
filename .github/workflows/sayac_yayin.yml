@@ -3,7 +3,6 @@ name: "24/7 Live 2027 Countdown"
 on:
   workflow_dispatch:
   schedule:
-    # Her 5 saatte bir otomatik başlatır (UTC zaman dilimine göre)
     - cron: '0 */5 * * *'
 
 jobs:
@@ -16,27 +15,82 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb chromium-browser python3
+          sudo apt-get install -y ffmpeg python3 python3-pip
+          pip3 install pillow
 
-      - name: Start Stream
+      - name: Start Canvas Stream
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          python3 -m http.server 8000 &
-          sleep 2
+          cat << 'EOF' > generate_stream.py
+          import time
+          import subprocess
+          from datetime import datetime
+          from PIL import Image, ImageDraw, ImageFont
 
-          Xvfb :99 -screen 0 1920x1080x24 &
-          export DISPLAY=:99
-          sleep 2
+          target_date = datetime(2027, 1, 1, 0, 0, 0)
 
-                    chromium-browser --no-sandbox --disable-setuid-sandbox --window-size=1920,1080 --start-fullscreen --kiosk http://localhost:8000/sayac.html &
+          # Ffmpeg yayını başlat
+          command = [
+              'ffmpeg',
+              '-y',
+              '-f', 'rawvideo',
+              '-vcodec', 'rawvideo',
+              '-s', '1920x1080',
+              '-pix_fmt', 'rgb24',
+              '-r', '1',
+              '-i', '-',
+              '-f', 'lavfi',
+              '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+              '-c:v', 'libx264',
+              '-preset', 'ultrafast',
+              '-tune', 'zerolatency',
+              '-b:v', '2500k',
+              '-g', '2',
+              '-c:a', 'aac',
+              '-b:a', '128k',
+              '-f', 'flv',
+              f"rtmp://a.rtmp.youtube.com/live2/{import_stream_key}"
+          ]
+
+          import os
+          stream_key = os.environ.get("STREAM_KEY")
+          command[-1] = f"rtmp://a.rtmp.youtube.com/live2/{stream_key}"
+
+          proc = subprocess.Popen(command, stdin=subprocess.PIPE)
+
+          try:
+              font_large = ImageFont.load_default()
+          except Exception:
+              font_large = None
+
+          while True:
+              now = datetime.now()
+              diff = target_date - now
+
+              if diff.total_seconds() <= 0:
+                  text_timer = "MUTLU YILLAR!"
+              else:
+                  days = diff.days
+                  hours, remainder = divmod(diff.seconds, 3600)
+                  minutes, seconds = divmod(remainder, 60)
+                  text_timer = f"{days} Gün {hours} Saat {minutes} Dk {seconds} Sn"
+
+              img = Image.new('RGB', (1920, 1080), color=(13, 17, 23))
+              draw = ImageDraw.Draw(img)
+
+              # Başlık ve Sayaç Yazıları
+              draw.text((960, 400), "2027 YENİ YIL SAYACI", fill=(88, 166, 255), anchor="mm", font_size=70)
+              draw.text((960, 560), text_timer, fill=(255, 255, 255), anchor="mm", font_size=90)
+
+              proc.stdin.write(img.tobytes())
+              time.sleep(1)
+          EOF
+
+          python3 generate_stream.py
 
 
-          ffmpeg -f x11grab -video_size 1920x1080 -framerate 30 -i :99.0 \
-          -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 60 \
-          -c:a aac -b:a 128k \
-          -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+
 
 
 
