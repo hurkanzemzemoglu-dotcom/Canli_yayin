@@ -10,84 +10,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3 python3-pip
-          pip3 install pillow
+          sudo apt-get install -y ffmpeg
 
-      - name: Start Canvas Stream
+      - name: Start Stream
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          cat << 'EOF' > generate_stream.py
-          import time
-          import subprocess
-          from datetime import datetime
-          from PIL import Image, ImageDraw, ImageFont
+          cat << 'EOF' > run_stream.sh
+          #!/bin/bash
+          TARGET=$(date -d "2027-01-01 00:00:00" +%s)
 
-          target_date = datetime(2027, 1, 1, 0, 0, 0)
+          while true; do
+            NOW=$(date +%s)
+            DIFF=$((TARGET - NOW))
 
-          # Ffmpeg yayını başlat
-          command = [
-              'ffmpeg',
-              '-y',
-              '-f', 'rawvideo',
-              '-vcodec', 'rawvideo',
-              '-s', '1920x1080',
-              '-pix_fmt', 'rgb24',
-              '-r', '1',
-              '-i', '-',
-              '-f', 'lavfi',
-              '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-              '-c:v', 'libx264',
-              '-preset', 'ultrafast',
-              '-tune', 'zerolatency',
-              '-b:v', '2500k',
-              '-g', '2',
-              '-c:a', 'aac',
-              '-b:a', '128k',
-              '-f', 'flv',
-              f"rtmp://a.rtmp.youtube.com/live2/{import_stream_key}"
-          ]
+            if [ $DIFF -le 0 ]; then
+              TIME_STR="MUTLU YILLAR!"
+            else
+              DAYS=$((DIFF / 86400))
+              HOURS=$(( (DIFF % 86400) / 3600 ))
+              MINS=$(( (DIFF % 3600) / 60 ))
+              SECS=$(( DIFF % 60 ))
+              TIME_STR="${DAYS} Gun ${HOURS} Saat ${MINS} Dk ${SECS} Sn"
+            fi
 
-          import os
-          stream_key = os.environ.get("STREAM_KEY")
-          command[-1] = f"rtmp://a.rtmp.youtube.com/live2/{stream_key}"
-
-          proc = subprocess.Popen(command, stdin=subprocess.PIPE)
-
-          try:
-              font_large = ImageFont.load_default()
-          except Exception:
-              font_large = None
-
-          while True:
-              now = datetime.now()
-              diff = target_date - now
-
-              if diff.total_seconds() <= 0:
-                  text_timer = "MUTLU YILLAR!"
-              else:
-                  days = diff.days
-                  hours, remainder = divmod(diff.seconds, 3600)
-                  minutes, seconds = divmod(remainder, 60)
-                  text_timer = f"{days} Gün {hours} Saat {minutes} Dk {seconds} Sn"
-
-              img = Image.new('RGB', (1920, 1080), color=(13, 17, 23))
-              draw = ImageDraw.Draw(img)
-
-              # Başlık ve Sayaç Yazıları
-              draw.text((960, 400), "2027 YENİ YIL SAYACI", fill=(88, 166, 255), anchor="mm", font_size=70)
-              draw.text((960, 560), text_timer, fill=(255, 255, 255), anchor="mm", font_size=90)
-
-              proc.stdin.write(img.tobytes())
-              time.sleep(1)
+            ffmpeg -y -re \
+              -f lavfi -i color=c=0x0d1117:s=1920x1080:r=1 \
+              -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+              -vf "drawtext=text='2027 YENI YIL SAYACI':fontcolor=0x58a6ff:fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2-80,drawtext=text='${TIME_STR}':fontcolor=white:fontsize=75:x=(w-text_w)/2:y=(h-text_h)/2+40" \
+              -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 2 \
+              -c:a aac -b:a 128k -t 1 \
+              -f flv "rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
+          done
           EOF
 
-          python3 generate_stream.py
+          chmod +x run_stream.sh
+          ./run_stream.sh
+'
+
+
 
 
 
