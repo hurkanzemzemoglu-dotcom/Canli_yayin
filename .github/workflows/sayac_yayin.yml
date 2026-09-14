@@ -15,43 +15,49 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg python3
 
-      - name: Start Stream
+      - name: Start Continuous Stream
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          cat << 'EOF' > run_stream.sh
-          #!/bin/bash
-          TARGET=$(date -d "2027-01-01 00:00:00" +%s)
+          # 1. Güvenli sayaç yazıcı (Çökme ve kilitlenme yaşanmaması için atomik yazma)
+          python3 -c "
+          import time, os
+          from datetime import datetime, timezone
 
-          while true; do
-            NOW=$(date +%s)
-            DIFF=$((TARGET - NOW))
+          target = datetime(2027, 1, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp()
 
-            if [ $DIFF -le 0 ]; then
-              TIME_STR="MUTLU YILLAR!"
-            else
-              DAYS=$((DIFF / 86400))
-              HOURS=$(( (DIFF % 86400) / 3600 ))
-              MINS=$(( (DIFF % 3600) / 60 ))
-              SECS=$(( DIFF % 60 ))
-              TIME_STR="${DAYS} Gun ${HOURS} Saat ${MINS} Dk ${SECS} Sn"
-            fi
+          while True:
+              now = datetime.now(timezone.utc).timestamp()
+              diff = int(target - now)
+              if diff <= 0:
+                  text = 'MUTLU YILLAR!'
+              else:
+                  days = diff // 86400
+                  hours = (diff % 86400) // 3600
+                  mins = (diff % 3600) // 60
+                  secs = diff % 60
+                  text = f'{days} Gun {hours:02d} Saat {mins:02d} Dk {secs:02d} Sn'
+              
+              with open('timer.tmp', 'w', encoding='utf-8') as f:
+                  f.write(text)
+              os.replace('timer.tmp', 'timer.txt')
+              time.sleep(1)
+          " &
 
-            ffmpeg -y -re \
-              -f lavfi -i color=c=0x0d1117:s=1920x1080:r=1 \
-              -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
-              -vf "drawtext=text='2027 YENI YIL SAYACI':fontcolor=0x58a6ff:fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2-80,drawtext=text='${TIME_STR}':fontcolor=white:fontsize=75:x=(w-text_w)/2:y=(h-text_h)/2+40" \
-              -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -g 2 \
-              -c:a aac -b:a 128k -t 1 \
-              -f flv "rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
-          done
-          EOF
+          sleep 2
 
-          chmod +x run_stream.sh
-          ./run_stream.sh
-'
+          # 2. FFmpeg Canlı Yayın Akışı (5 Saat 30 Dakika = 19800 saniye)
+          ffmpeg -re -f lavfi -i color=c=0x0d1117:s=1920x1080:r=30 \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+            -vf "drawtext=text='2027 YILBASINA KALAN SURE':fontcolor=0x58a6ff:fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2-80,drawtext=textfile='timer.txt':reload=1:fontcolor=white:fontsize=75:x=(w-text_w)/2:y=(h-text_h)/2+40" \
+            -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 2500k \
+            -c:a aac -b:a 128k \
+            -t 19800 \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
+
+
 
 
 
